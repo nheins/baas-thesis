@@ -3,6 +3,7 @@ import json
 import time
 import psutil
 import pandas as pd
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -21,6 +22,16 @@ class SSDMonitor:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.current_session = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.data = []
+  
+    def get_smart_attributes(self):
+        """Get SMART attributes using smartctl"""
+        try:
+            cmd = ["smartctl", "-A", "-j", self.device_path]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            return json.loads(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting SMART attributes: {e}")
+            return None
 
     def get_measurements(self):
         """
@@ -52,7 +63,7 @@ class SSDMonitor:
                 self.get_measurements()   
 
                 # Save data periodically to reduce i/o operations
-                if len(self.data) % 10 == 0:
+                if len(self.data) % 10 == 0:                    
                     self.save_data()
 
                 time.sleep(interval)
@@ -68,7 +79,7 @@ class SSDMonitor:
         # TODO append or write complete data all the time?
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+        print("Saving data...")
         
         json_path = self.output_dir / f"raw_data_{self.current_session}.json"
         with open(json_path, 'w') as f:
@@ -78,7 +89,8 @@ class SSDMonitor:
             'timestamp': d['timestamp'],
             'write_bytes': d['write_bytes'],
             'write_count': d['write_count'],
-            'write_time': d['write_time']
+            'write_time': d['write_time'],
+            'smart_data': self.get_smart_attributes(),
         } for d in self.data])
 
         csv_path = self.output_dir / f"metrics_{self.current_session}.csv"
