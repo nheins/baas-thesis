@@ -2,3 +2,5 @@
 .venv/
 
 # Monitorings
+experiments/temp/
+experiments/images/
