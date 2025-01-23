@@ -8,7 +8,8 @@ The scripts are run under Ubuntu 22.04. The following packages are required:
 - jq
 - curl
 - python3-venv
+- smartmontools
 
 ```bash
-sudo apt-get install jq curl python3-venv
+sudo apt-get install jq curl python3-venv smartmontools
 ```
