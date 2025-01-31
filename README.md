@@ -9,7 +9,10 @@ The scripts are run under Ubuntu 22.04. The following packages are required:
 - curl
 - python3-venv
 - smartmontools
+- debootstrap
+- e2fsprogs
+- btrfs-progs
 
 ```bash
-sudo apt-get install jq curl python3-venv smartmontools
+sudo apt-get install jq curl python3-venv smartmontools debootstrap e2fsprogs btrfs-progs
 ```

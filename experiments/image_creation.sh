@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# Configuration variables. Use flags?
+# Configuration variables.
+RUN_BASE_LAYER=false
+RUN_APP_LAYER=false
+RUN_VERIFY=true
+
 BASE_SIZE="5G"
 APP_SIZE="2G"
 CONFIG_SIZE="100M"
@@ -12,9 +16,7 @@ create_base_layer() {
     echo "Creating base layer..."
     
     truncate -s $BASE_SIZE $OUTPUT_DIR/base_image.img
-    
     mkfs.ext4 $OUTPUT_DIR/base_image.img
-    
     mount -o loop $OUTPUT_DIR/base_image.img $MOUNT_POINT
     
     debootstrap --variant=minbase focal $MOUNT_POINT $DEBOOTSTRAP_MIRROR
@@ -39,11 +41,47 @@ create_base_layer() {
     umount $MOUNT_POINT
 }
 
+create_app_layer() {
+    echo "Creating application layer..."
+    
+    truncate -s $APP_SIZE $OUTPUT_DIR/app_layer.img
+    mkfs.ext4 $OUTPUT_DIR/app_layer.img
+    mount -o loop $OUTPUT_DIR/app_layer.img $MOUNT_POINT
+    
+    debootstrap --variant=minbase focal $MOUNT_POINT $DEBOOTSTRAP_MIRROR
+
+    chroot $MOUNT_POINT /bin/bash -c "
+        apt-get update
+        
+        # Install web server and database
+        apt-get install -y --no-install-recommends \
+            nginx \
+        
+        # Clean up
+        apt-get clean
+        rm -rf /var/lib/apt/lists/*
+        
+        # Basic nginx configuration
+        echo 'server {
+            listen 80 default_server;
+            root /var/www/html;
+            index index.php index.html;
+            
+            location ~ \.php$ {
+                include snippets/fastcgi-php.conf;
+                fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+            }
+        }' > /etc/nginx/sites-available/default
+    "
+    
+    umount $MOUNT_POINT
+}
+
 # Verify file system as good as possible
 verify_images() {
     echo "Verifying images..."
     
-    for img in base_image.img; do
+    for img in base_image.img app_layer.img config_layer.img; do
         echo "Checking $img..."
         e2fsck -f $OUTPUT_DIR/$img
                 
@@ -62,12 +100,27 @@ fi
 mkdir -p $OUTPUT_DIR
 mkdir -p $MOUNT_POINT
 
-# Install required tools. Necessary?!
-apt-get update
-apt-get install -y debootstrap e2fsprogs
-    
-create_base_layer
-    
-verify_images
+while (( $# >= 1 )); do 
+    case $1 in
+    --base) RUN_BASE_LAYER=true;;
+    --app) RUN_APP_LAYER=true;;
+    --no-verify) RUN_VERIFY=false;;
+    *) break;
+    esac;
+    shift
+done
+
+# Call functions based on options
+if [ "$RUN_BASE_LAYER" = true ]; then
+    create_base_layer
+fi
+
+if [ "$RUN_APP_LAYER" = true ]; then
+    create_app_layer
+fi
+
+if [ "$RUN_VERIFY" = true ]; then
+    verify_images
+fi    
 
 echo "Image creation complete. Images are in $OUTPUT_DIR"
