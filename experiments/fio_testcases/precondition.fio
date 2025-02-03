@@ -1,0 +1,17 @@
+[global]
+# Basic configuration
+ioengine=libaio
+direct=1
+group_reporting
+thread
+
+# Device configuration
+filename=/dev/sda  # Change this to your device
+size=200%              # Write 2x the capacity
+
+[precondition]
+description=Sequential write preconditioning - 2x capacity
+rw=write
+bs=128k
+iodepth=32
+numjobs=1

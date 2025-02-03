@@ -1,0 +1,14 @@
+[global]
+name=waf_test
+direct=1
+time_based=1
+runtime=20
+rw=randwrite
+bs=4k
+size=1G
+iodepth=32
+ioengine=libaio
+group_reporting
+
+
+[test]

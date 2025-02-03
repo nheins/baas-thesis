@@ -25,6 +25,7 @@ fi
 
 # Parse command line arguments. Bash is so self-explainatory <.<
 FILESYSTEM="ext4"
+DISCARD=false
 for arg in "$@"; do
     case $arg in
         --fs=*)
@@ -34,6 +35,9 @@ for arg in "$@"; do
             else
                 error_exit "Invalid filesystem type. Use --fs=ext4 or --fs=btrfs"
             fi
+            ;;
+        --discard)
+            DISCARD=true
             ;;
         /dev/*)
             DRIVE="$arg"
@@ -63,6 +67,11 @@ fi
 confirm_action $DRIVE
 
 echo "Starting drive reset process..."
+
+if [[ "$DISCARD" == true ]]; then
+    echo "Discard all blocks on drive $DRIVE"
+    blkdiscard $DRIVE
+fi
 
 echo "Creating new GPT partition table..."
 parted -s $DRIVE mklabel gpt || \

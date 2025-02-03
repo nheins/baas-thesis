@@ -1,0 +1,14 @@
+[global]
+direct=1
+ioengine=libaio
+group_reporting
+filename=/dev/sda1
+bs=128k
+numjobs=1
+
+[seq_precondition]
+stonewall
+name=seq_precondition
+iodepth=16
+rw=write
+size=100%

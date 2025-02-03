@@ -33,6 +33,16 @@ class SSDMonitor:
             print(f"Error getting SMART attributes: {e}")
             return None
 
+    def get_io_stats(self):
+        """Get current IO statistics using iostat"""
+        try:
+            cmd = ["iostat", "-x", "-j", self.device_path]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            return json.loads(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print(f"Error getting IO stats: {e}")
+            return None
+
     def get_measurements(self):
         """
         Get current write bytes and write time
@@ -46,7 +56,8 @@ class SSDMonitor:
                 'timestamp': timestamp,
                 'write_bytes': stats.write_bytes,
                 'write_count': stats.write_count,
-                'write_time': stats.write_time
+                'write_time': stats.write_time,
+                'smart_data': self.get_smart_attributes(),
             }
             self.data.append(entry)
 
@@ -90,7 +101,6 @@ class SSDMonitor:
             'write_bytes': d['write_bytes'],
             'write_count': d['write_count'],
             'write_time': d['write_time'],
-            'smart_data': self.get_smart_attributes(),
         } for d in self.data])
 
         csv_path = self.output_dir / f"metrics_{self.current_session}.csv"
